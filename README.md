@@ -13,5 +13,5 @@ python3 -m http.server 8000
 
 ## Notes
 
-- `<meta name="robots" content="noindex">` is set — remove it before using this as an indexed public page.
+- Published with GitHub Pages from the `main` branch.
 - Styles and scripts are inlined; edit `index.html` directly.

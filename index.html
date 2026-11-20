@@ -446,10 +446,11 @@ footer.site .legal{grid-column:1/-1;text-align:center;border-top:1px solid rgba(
    CONFIG: everything you'd want to change before going live lives here
    ===================================================================== */
 var CONFIG = {
-  phone: "4243466285",                 // digits only; shown and dialed everywhere
+  phone: "3107766950",                 // digits only; shown and dialed everywhere
   webhookUrl: "https://services.leadconnectorhq.com/hooks/K9KX1Au0e9EUsY5SiBbn/webhook-trigger/9d558ec2-b161-44df-8753-d90f5e13759c",                      // GHL Workflow > Inbound Webhook URL. Empty = preview mode.
   metaPixelId: "",                     // Meta Pixel ID. Empty = pixel not loaded.
   leadSource: "Meta Ads Landing Page",
+campaign: "No Cost Home Upgrades", // shown on the lead record, matches the Meta form
   baseTags: ["meta-lp"],
   hoursShort: "Mon to Fri, 8 AM to 5 PM",
   reviewsUrl: "https://www.google.com/search?q=Stay+Cool+Heating+%26+Air+Los+Angeles+reviews",
@@ -463,28 +464,28 @@ var CONFIG = {
 var CCODES=[["+1","US/CA"],["+52","MX"],["+44","UK"],["+34","ES"],["+49","DE"],["+33","FR"],["+39","IT"],["+55","BR"],["+54","AR"],["+57","CO"],["+56","CL"],["+51","PE"],["+593","EC"],["+502","GT"],["+503","SV"],["+504","HN"],["+505","NI"],["+506","CR"],["+507","PA"],["+58","VE"],["+53","CU"],["+1-809","DO"],["+63","PH"],["+84","VN"],["+61","AU"],["+81","JP"],["+82","KR"],["+86","CN"],["+91","IN"],["+972","IL"],["+971","AE"],["+966","SA"],["+374","AM"],["+98","IR"],["+7","RU"],["+27","ZA"],["+234","NG"],["+20","EG"],["+212","MA"]];
 
 /* ---------- Shared flow: the page form and the chat both run on this ----------
-   service -> timing -> CONTACT PANEL (creates the lead) -> property -> ownership -> age -> zip -> best time (completes the lead) */
+service -> timing -> CONTACT PANEL (name, phone, ZIP, email: creates the lead)
+-> home type -> how the home is heated -> upgrades wanted -> end page.
+The three questions after the contact panel mirror the Meta "No Cost Home Upgrades"
+instant form (C.S. | TECH SFV | Lead form v4), branching included: only apartment
+or condo goes to the referral end page. A third item on an option is where it goes. */
 var FLOW = [
-  {id:"service", title:"What do you need help with?", chat:"First, what do you need help with?",
-   options:[["ac_repair","AC repair"],["ac_install","New AC or replacement"],["heating","Heating or furnace"],["minisplit","Ductless mini-split"],["ducts_iaq","Ducts or air quality"],["maintenance","Tune-up or maintenance"],["unsure","Not sure, need someone to look"]]},
-  {id:"timing", title:"How soon do you need us?", chat:"How soon do you need us out there?",
-   options:[["today","Today, it's urgent"],["this_week","This week"],["few_weeks","In the next few weeks"],["quotes","Just comparing quotes"]]},
-  {id:"contact", title:"Who should we follow up with?", chat:"Great! Let's get your contact details so our team can follow up with you.", type:"contact",
-   help:"Fill in your name, phone number and email."},
-  {id:"property", title:"What kind of property is it?", chat:"Thanks! What kind of property is it?",
-   options:[["house","House"],["condo","Condo or townhome"],["rental_unit","Apartment or rental unit"],["commercial","Business or commercial"]]},
-  {id:"ownership", title:"Do you own the property?", chat:"Do you own the property?",
-   options:[["owner","Yes, I own it"],["renter","I rent"],["manager","I manage it for the owner"]]},
-  {id:"age", title:"About how old is the current system?", chat:"About how old is the system you have now?",
-   options:[["0_5","Under 5 years"],["5_10","5 to 10 years"],["10_15","10 to 15 years"],["15_plus","Over 15 years"],["unknown","Not sure, or there isn't one"]]},
-  {id:"zip", title:"What's the ZIP code for the property?", chat:"What's the ZIP code where the work is?", type:"zip",
-   help:"So we can check which technician covers your area."},
-  {id:"best", title:"When's the best time to call you?", chat:"Last one. When's the best time to call you?",
-   options:[["morning","Morning"],["afternoon","Afternoon"],["evening","Evening"],["anytime","Anytime"]]}
+{id:"service", title:"What do you need help with?", chat:"First, what do you need help with?",
+options:[["ac_repair","AC repair"],["ac_install","New AC or replacement"],["heating","Heating or furnace"],["minisplit","Ductless mini-split"],["ducts_iaq","Ducts or air quality"],["maintenance","Tune-up or maintenance"],["unsure","Not sure, need someone to look"]]},
+{id:"timing", title:"How soon do you need us?", chat:"How soon do you need us out there?",
+options:[["today","Today, it's urgent"],["this_week","This week"],["few_weeks","In the next few weeks"],["quotes","Just comparing quotes"]]},
+{id:"contact", title:"Who should we follow up with?", chat:"Great! Let's get your contact details so our team can follow up with you.", type:"contact",
+help:"A Stay Cool specialist will call you to check if your home qualifies."},
+{id:"hometype", title:"What type of home do you live in?", chat:"What type of home do you live in?",
+options:[["house","House","heating"],["house_adu","House with an ADU","heating"],["apartment_condo","Apartment or condo","end:referral"],["mobile_home","Mobile home","heating"],["townhome","Townhome","heating"],["other","Other","heating"]]},
+{id:"heating", title:"How is your home heated right now?", chat:"How is your home heated right now?",
+options:[["gas_furnace","Gas furnace or gas wall heater","upgrades"],["heat_pump","Heat pump","upgrades"],["electric","Electric heater","upgrades"],["not_sure","Not sure","upgrades"]]},
+{id:"upgrades", title:"Which upgrades are you interested in?", chat:"Last one. Which upgrades are you interested in?",
+options:[["heat_pump_hvac","Heat pump (heating and A/C)","end:qualified"],["mini_split","Mini split","end:qualified"],["hp_water_heater","Heat pump water heater","end:qualified"],["induction","Induction range and cooktop","end:qualified"],["insulation","Attic insulation","end:qualified"],["dryer","Clothes dryer","end:qualified"],["all","All of the above","end:qualified"]]}
 ];
 var STEP_INDEX = {}; FLOW.forEach(function(s,i){STEP_INDEX[s.id]=i;});
 
-var state = {step:0, answers:{}, labels:{}, contact:null, leadId:null, leadSaved:false, done:false, submitting:false, channel:null};
+var state = {step:0, history:[], answers:{}, labels:{}, contact:null, leadId:null, leadSaved:false, done:false, outcome:null, submitting:false, channel:null};
 
 /* ---------- Helpers ---------- */
 function $(s,r){return (r||document).querySelector(s);}
@@ -500,295 +501,326 @@ function validPhone(cc,d){d=cleanNum(cc,d);if(isNA(cc))return d.length===10&&/^[
 function validEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);}
 function inArea(z){var n=parseInt(z,10);return n>=90001&&n<=93599;}
 function optLabel(stepId,val){var s=FLOW[STEP_INDEX[stepId]];if(!s.options)return val;for(var i=0;i<s.options.length;i++)if(s.options[i][0]===val)return s.options[i][1];return val;}
-function pct(){return state.done?100:Math.round(state.step/FLOW.length*100);}
+
+/* ---------- Where a step goes next (branching lives here) ---------- */
+function nextOf(stepId,value){
+var s=FLOW[STEP_INDEX[stepId]];
+if(s.options&&value){for(var i=0;i<s.options.length;i++)if(s.options[i][0]===value&&s.options[i][2])return s.options[i][2];}
+var n=FLOW[STEP_INDEX[stepId]+1];
+return n?n.id:"end:qualified";
+}
+/* The path they're on, so "Step 3 of 6" and the progress bar stay honest when a branch is shorter */
+function plan(){
+var ids=[],id=FLOW[0].id,guard=0,nx;
+while(id&&guard++<20){ids.push(id);nx=nextOf(id,state.answers[id]);if(!nx||nx.indexOf("end:")===0)break;id=nx;}
+return ids;
+}
+function stepNo(){var cur=FLOW[state.step]?FLOW[state.step].id:"",p=plan(),i=p.indexOf(cur);return i<0?p.length:i+1;}
+function stepTotal(){return Math.max(plan().length,stepNo());}
+function pct(){return state.done?100:Math.round((stepNo()-1)/stepTotal()*100);}
 function firstAnswer(){if(!state._started){state._started=true;track("trackCustom","StartedRequest");}}
 function ccOptions(sel){return CCODES.map(function(c){return '<option value="'+c[0]+'"'+(c[0]===sel?' selected':'')+'>'+c[0].replace("-809","")+' '+c[1]+'</option>';}).join("");}
 
 /* ---------- Apply config to page ---------- */
 (function(){
-  var tel="tel:+1"+CONFIG.phone, txt=fmtPhone(CONFIG.phone);
-  $$("[data-phone-link]").forEach(function(a){a.href=tel;a.addEventListener("click",function(){track("track","Contact");});});
-  $$("[data-phone-text]").forEach(function(s){s.textContent=txt;});
-  $$("[data-cfg-href]").forEach(function(a){var v=CONFIG[a.getAttribute("data-cfg-href")];if(v)a.href=v;});
-  var lic=$('[data-cfg="licenseLine"]');if(lic)lic.textContent=CONFIG.licenseLine||"";
-  $("#yr").textContent=new Date().getFullYear();
-  if(!CONFIG.webhookUrl)$("#previewFlag").classList.add("on");
+var tel="tel:+1"+CONFIG.phone, txt=fmtPhone(CONFIG.phone);
+$$("[data-phone-link]").forEach(function(a){a.href=tel;a.addEventListener("click",function(){track("track","Contact");});});
+$$("[data-phone-text]").forEach(function(s){s.textContent=txt;});
+$$("[data-cfg-href]").forEach(function(a){var v=CONFIG[a.getAttribute("data-cfg-href")];if(v)a.href=v;});
+var lic=$('[data-cfg="licenseLine"]');if(lic)lic.textContent=CONFIG.licenseLine||"";
+$("#yr").textContent=new Date().getFullYear();
+if(!CONFIG.webhookUrl)$("#previewFlag").classList.add("on");
 })();
 
 /* ---------- Attribution (UTMs, fbclid) ---------- */
 var ATTR=(function(){var p=new URLSearchParams(location.search),o={};["utm_source","utm_medium","utm_campaign","utm_content","utm_term","fbclid"].forEach(function(k){if(p.get(k))o[k]=p.get(k);});
-  try{var saved=JSON.parse(sessionStorage.getItem("sc_attr")||"{}");o=Object.assign(saved,o);sessionStorage.setItem("sc_attr",JSON.stringify(o));}catch(e){}
-  return o;})();
+try{var saved=JSON.parse(sessionStorage.getItem("sc_attr")||"{}");o=Object.assign(saved,o);sessionStorage.setItem("sc_attr",JSON.stringify(o));}catch(e){}
+return o;})();
 
 /* ---------- Meta Pixel ---------- */
 if(CONFIG.metaPixelId){
-  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
-  fbq("init",CONFIG.metaPixelId);fbq("track","PageView");
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
+fbq("init",CONFIG.metaPixelId);fbq("track","PageView");
 }
 function track(kind,name,data,opts){try{if(window.fbq)opts?fbq(kind,name,data||{},opts):fbq(kind,name,data||{});}catch(e){}}
 
-/* ---------- Answering a choice/ZIP step (from page or chat) ---------- */
+/* ---------- Answering a choice step (from page or chat) ---------- */
 function answer(stepId,value,source){
-  if(state.done)return;
-  var idx=STEP_INDEX[stepId];
-  firstAnswer();
-  state.answers[stepId]=value;
-  state.labels[stepId]=stepId==="zip"?value:optLabel(stepId,value);
-  state.step=idx+1;
-  if(stepId==="best"){finishLead(source);return;}
-  if(state.leadSaved)sendLead("qualifying");      // keep the lead record current as they go
-  Form.render(true);
-  Chat.onAnswer(stepId,source);
+if(state.done)return;
+firstAnswer();
+state.answers[stepId]=value;
+state.labels[stepId]=optLabel(stepId,value);
+var nx=nextOf(stepId,value);
+state.history.push(STEP_INDEX[stepId]);
+if(nx.indexOf("end:")===0){state.step=FLOW.length;return finishLead(source,nx.slice(4));}
+state.step=STEP_INDEX[nx];
+if(state.leadSaved)sendLead("qualifying"); // keep the lead record current as they go
+Form.render(true);
+Chat.onAnswer(stepId,source);
 }
-function goBack(){if(state.step>0&&!state.done){state.step--;if(FLOW[state.step].id==="contact"&&state.leadSaved){/* contact already saved: allow edits, resubmit updates it */}Form.render(true);Chat.onStepChange();}}
+function goBack(){
+if(state.done||!state.history.length)return;
+state.step=state.history.pop();
+Form.render(true);Chat.onStepChange();
+}
 
 /* ---------- Lead payload + delivery to GHL ---------- */
 var QUEUE_KEY="sc_lead_queue";
 function postWithRetry(body,attempt){
-  attempt=attempt||0;
-  if(!CONFIG.webhookUrl){console.info("[Preview] "+body.stage+" payload:",body);return Promise.resolve({preview:true});}
-  return fetch(CONFIG.webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),keepalive:true})
-    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r;})
-    .catch(function(err){
-      if(attempt<2)return new Promise(function(res){setTimeout(res,[1200,3500][attempt]);}).then(function(){return postWithRetry(body,attempt+1);});
-      try{var q=JSON.parse(localStorage.getItem(QUEUE_KEY)||"[]");q.push(body);localStorage.setItem(QUEUE_KEY,JSON.stringify(q));}catch(e){}
-      throw err;
-    });
+attempt=attempt||0;
+if(!CONFIG.webhookUrl){console.info("[Preview] "+body.stage+" payload:",body);return Promise.resolve({preview:true});}
+return fetch(CONFIG.webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),keepalive:true})
+.then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r;})
+.catch(function(err){
+if(attempt<2)return new Promise(function(res){setTimeout(res,[1200,3500][attempt]);}).then(function(){return postWithRetry(body,attempt+1);});
+try{var q=JSON.parse(localStorage.getItem(QUEUE_KEY)||"[]");q.push(body);localStorage.setItem(QUEUE_KEY,JSON.stringify(q));}catch(e){}
+throw err;
+});
 }
 (function flush(){try{var q=JSON.parse(localStorage.getItem(QUEUE_KEY)||"[]");if(!q.length)return;localStorage.removeItem(QUEUE_KEY);q.forEach(function(b){postWithRetry(b).catch(function(){});});}catch(e){}})();
 
 function buildBody(stage){
-  var c=state.contact, a=state.answers, L=state.labels, tags=CONFIG.baseTags.slice();
-  tags.push("lp-"+stage.replace(/_/g,"-"));
-  if(a.service)tags.push("svc-"+a.service);
-  if(a.timing)tags.push("when-"+a.timing);
-  if(a.timing==="today")tags.push("urgent");
-  if(a.ownership==="renter")tags.push("renter");
-  if(a.zip&&!inArea(a.zip))tags.push("outside-area-check");
-  if(state.channel)tags.push("via-"+state.channel);
-  var body={
-    lead_id:state.leadId, stage:stage,
-    first_name:c.first,last_name:c.last,full_name:c.first+" "+c.last,
-    phone:e164(c.cc,c.phone),phone_country_code:c.cc.replace("-809",""),email:c.email,
-    postal_code:a.zip||"",
-    service_needed:L.service||"",urgency:L.timing||"",property_type:L.property||"",ownership:L.ownership||"",
-    system_age:L.age||"",best_time_to_call:L.best||"",
-    source:CONFIG.leadSource,tags:tags,
-    sms_consent:true,consent_text:CONFIG.consentText,consent_timestamp:state.consentAt,
-    lead_channel:state.channel,page_url:location.href.split("#")[0],user_agent:navigator.userAgent
-  };
-  return Object.assign(body,ATTR);
+var c=state.contact, a=state.answers, L=state.labels, tags=CONFIG.baseTags.slice();
+tags.push("lp-"+stage.replace(/_/g,"-"));
+if(a.service)tags.push("svc-"+a.service);
+if(a.timing)tags.push("when-"+a.timing);
+if(a.timing==="today")tags.push("urgent");
+if(a.hometype)tags.push("home-"+a.hometype.replace(/_/g,"-"));
+if(a.heating)tags.push("heat-"+a.heating.replace(/_/g,"-"));
+if(a.upgrades)tags.push("upgrade-"+a.upgrades.replace(/_/g,"-"));
+if(state.outcome)tags.push(state.outcome==="qualified"?"upgrades-qualified":"upgrades-not-qualified");
+if(a.zip&&!inArea(a.zip))tags.push("outside-area-check");
+if(state.channel)tags.push("via-"+state.channel);
+var body={
+lead_id:state.leadId, stage:stage,
+first_name:c.first,last_name:c.last,full_name:c.first+" "+c.last,
+phone:e164(c.cc,c.phone),phone_country_code:c.cc.replace("-809",""),email:c.email,
+postal_code:a.zip||"",
+service_needed:L.service||"",urgency:L.timing||"",
+home_type:L.hometype||"",heating_type:L.heating||"",upgrades_wanted:L.upgrades||"",
+campaign:CONFIG.campaign,
+qualifies_for_upgrades:state.outcome?(state.outcome==="qualified"?"yes":"no"):"",
+source:CONFIG.leadSource,tags:tags,
+sms_consent:true,consent_text:CONFIG.consentText,consent_timestamp:state.consentAt,
+lead_channel:state.channel,page_url:location.href.split("#")[0],user_agent:navigator.userAgent
+};
+return Object.assign(body,ATTR);
 }
 function sendLead(stage){return postWithRetry(buildBody(stage)).catch(function(){});}
 
 /* Contact panel submit: this is the call that creates the lead */
 function saveContact(c,source){
-  if(state.submitting||state.done)return;
-  state.submitting=true;state.contact=c;state.channel=state.channel||source;
-  if(!state.leadId)state.leadId="sc-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
-  state.consentAt=new Date().toISOString();
-  var first=!state.leadSaved;
-  postWithRetry(buildBody(first?"contact_captured":"contact_updated")).then(function(){
-    state.submitting=false;state.leadSaved=true;
-    if(first)track("track","Lead",{content_name:state.labels.service},{eventID:state.leadId});
-    state.step=STEP_INDEX.contact+1;
-    Form.render(true);Chat.onContact(source);
-  },function(){
-    state.submitting=false;
-    var msg="We couldn't save that just now. Check your connection and try again, or call "+fmtPhone(CONFIG.phone)+".";
-    Form.showError(msg);Chat.showError(msg);
-  });
+if(state.submitting||state.done)return;
+state.submitting=true;state.contact=c;state.channel=state.channel||source;
+state.answers.zip=c.zip;state.labels.zip=c.zip;
+if(!state.leadId)state.leadId="sc-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+state.consentAt=new Date().toISOString();
+var first=!state.leadSaved;
+postWithRetry(buildBody(first?"contact_captured":"contact_updated")).then(function(){
+state.submitting=false;state.leadSaved=true;
+if(first)track("track","Lead",{content_name:state.labels.service},{eventID:state.leadId});
+state.history.push(STEP_INDEX.contact);
+state.step=STEP_INDEX[nextOf("contact")];
+Form.render(true);Chat.onContact(source);
+},function(){
+state.submitting=false;
+var msg="We couldn't save that just now. Check your connection and try again, or call "+fmtPhone(CONFIG.phone)+".";
+Form.showError(msg);Chat.showError(msg);
+});
 }
-function finishLead(source){
-  state.done=true;state.step=FLOW.length;
-  sendLead("completed");
-  track("trackCustom","CompletedRequest",{content_name:state.labels.service});
-  Form.render(true);Chat.onDone(source);
+function finishLead(source,outcome){
+state.done=true;state.outcome=outcome||"qualified";
+sendLead(state.outcome==="qualified"?"completed":"completed_not_qualified");
+track("trackCustom","CompletedRequest",{content_name:state.labels.upgrades||state.labels.service});
+Form.render(true);Chat.onDone(source);
 }
 /* If they leave after giving contact info but before finishing, send what we have */
 document.addEventListener("visibilitychange",function(){
-  if(document.visibilityState!=="hidden"||!state.leadSaved||state.done||state._abandonSent)return;
-  state._abandonSent=true;
-  var b=buildBody("abandoned_after_contact");b.last_step=FLOW[state.step]?FLOW[state.step].id:"";
-  if(!CONFIG.webhookUrl){console.info("[Preview] abandoned payload:",b);return;}
-  try{fetch(CONFIG.webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b),keepalive:true}).catch(function(){});}catch(e){}
+if(document.visibilityState!=="hidden"||!state.leadSaved||state.done||state._abandonSent)return;
+state._abandonSent=true;
+var b=buildBody("abandoned_after_contact");b.last_step=FLOW[state.step]?FLOW[state.step].id:"";
+if(!CONFIG.webhookUrl){console.info("[Preview] abandoned payload:",b);return;}
+try{fetch(CONFIG.webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b),keepalive:true}).catch(function(){});}catch(e){}
 });
 
 function checkContact(c){
-  if(!c.first)return ["Please enter your first name.","First"];
-  if(!c.last)return ["Please enter your last name.","Last"];
-  if(!validPhone(c.cc,c.phone))return [isNA(c.cc)?"Please enter a 10-digit phone number.":"Please enter a valid phone number (digits only).","Phone"];
-  if(!validEmail(c.email))return ["Please enter a valid email address.","Email"];
-  if(!c.consent)return ["Check the box so we're allowed to call and text you back.","Consent"];
-  return null;
+if(!c.first)return ["Please enter your first name.","First"];
+if(!c.last)return ["Please enter your last name.","Last"];
+if(!validPhone(c.cc,c.phone))return [isNA(c.cc)?"Please enter a 10-digit phone number.":"Please enter a valid phone number (digits only).","Phone"];
+if(!/^\d{5}$/.test(c.zip||""))return ["Please enter your 5-digit ZIP code.","Zip"];
+if(!validEmail(c.email))return ["Please enter a valid email address.","Email"];
+if(!c.consent)return ["Check the box so we're allowed to call and text you back.","Consent"];
+return null;
 }
 
 /* Contact panel markup + wiring, shared by page (prefix f) and chat (prefix c) */
 function contactPanel(p){
-  var c=state.contact||{cc:"+1"};
-  return '<div class="row2"><div class="field"><label class="sr" for="'+p+'First">First name</label><input class="inp" id="'+p+'First" placeholder="First name" autocomplete="given-name" value="'+esc(c.first||"")+'"></div>'+
-    '<div class="field"><label class="sr" for="'+p+'Last">Last name</label><input class="inp" id="'+p+'Last" placeholder="Last name" autocomplete="family-name" value="'+esc(c.last||"")+'"></div></div>'+
-    '<div class="field"><div class="cc-row"><label class="sr" for="'+p+'Cc">Country code</label><select class="inp cc-sel" id="'+p+'Cc" autocomplete="tel-country-code">'+ccOptions(c.cc||"+1")+'</select>'+
-    '<label class="sr" for="'+p+'Phone">Phone number</label><input class="inp" id="'+p+'Phone" type="tel" inputmode="numeric" placeholder="Phone number" autocomplete="tel-national" value="'+esc(c.phone?(isNA(c.cc)?fmtPhone(c.phone):c.phone):"")+'"></div></div>'+
-    '<div class="field"><label class="sr" for="'+p+'Email">Email</label><input class="inp" id="'+p+'Email" type="email" placeholder="your@email.com" autocomplete="email" value="'+esc(c.email||"")+'"></div>'+
-    '<label class="consent"><input type="checkbox" id="'+p+'Consent"'+(c.consent?' checked':'')+'><span>'+esc(CONFIG.consentText)+'</span></label>'+
-    '<div class="err" id="'+p+'Err"></div><button type="button" class="btn btn-gold btn-block" data-'+p+'send>Continue</button>';
+var c=state.contact||{cc:"+1"};
+return '<div class="row2"><div class="field"><label class="sr" for="'+p+'First">First name</label><input class="inp" id="'+p+'First" placeholder="First name" autocomplete="given-name" value="'+esc(c.first||"")+'"></div>'+
+'<div class="field"><label class="sr" for="'+p+'Last">Last name</label><input class="inp" id="'+p+'Last" placeholder="Last name" autocomplete="family-name" value="'+esc(c.last||"")+'"></div></div>'+
+'<div class="field"><div class="cc-row"><label class="sr" for="'+p+'Cc">Country code</label><select class="inp cc-sel" id="'+p+'Cc" autocomplete="tel-country-code">'+ccOptions(c.cc||"+1")+'</select>'+
+'<label class="sr" for="'+p+'Phone">Phone number</label><input class="inp" id="'+p+'Phone" type="tel" inputmode="numeric" placeholder="Phone number" autocomplete="tel-national" value="'+esc(c.phone?(isNA(c.cc)?fmtPhone(c.phone):c.phone):"")+'"></div></div>'+
+'<div class="field"><label class="sr" for="'+p+'Zip">ZIP code</label><input class="inp" id="'+p+'Zip" inputmode="numeric" maxlength="5" placeholder="ZIP code" autocomplete="postal-code" value="'+esc(c.zip||"")+'"></div>'+
+'<div class="field"><label class="sr" for="'+p+'Email">Email</label><input class="inp" id="'+p+'Email" type="email" placeholder="your@email.com" autocomplete="email" value="'+esc(c.email||"")+'"></div>'+
+'<label class="consent"><input type="checkbox" id="'+p+'Consent"'+(c.consent?' checked':'')+'><span>'+esc(CONFIG.consentText)+'</span></label>'+
+'<div class="err" id="'+p+'Err"></div><button type="button" class="btn btn-gold btn-block" data-'+p+'send>Continue</button>';
 }
 function wireContact(p,root){
-  var ph=$("#"+p+"Phone"),cc=$("#"+p+"Cc");if(!ph)return;
-  function fmt(){var d=ph.value.replace(/\D/g,"");if(isNA(cc.value)){if(d.length===11&&d[0]==="1")d=d.slice(1);ph.value=fmtPhone(d);}else ph.value=d.slice(0,14);}
-  ph.addEventListener("keypress",function(e){if(e.key&&e.key.length===1&&!/[0-9]/.test(e.key))e.preventDefault();});
-  ph.addEventListener("input",fmt);cc.addEventListener("change",fmt);
-  $$("#"+p+"First,#"+p+"Last,#"+p+"Phone,#"+p+"Email",root).forEach(function(el){el.addEventListener("keydown",function(e){if(e.key==="Enter")$("[data-"+p+"send]",root).click();});});
+var ph=$("#"+p+"Phone"),cc=$("#"+p+"Cc"),zp=$("#"+p+"Zip");if(!ph)return;
+function fmt(){var d=ph.value.replace(/\D/g,"");if(isNA(cc.value)){if(d.length===11&&d[0]==="1")d=d.slice(1);ph.value=fmtPhone(d);}else ph.value=d.slice(0,14);}
+ph.addEventListener("keypress",function(e){if(e.key&&e.key.length===1&&!/[0-9]/.test(e.key))e.preventDefault();});
+ph.addEventListener("input",fmt);cc.addEventListener("change",fmt);
+if(zp)zp.addEventListener("input",function(){zp.value=zp.value.replace(/\D/g,"").slice(0,5);});
+$$("#"+p+"First,#"+p+"Last,#"+p+"Phone,#"+p+"Zip,#"+p+"Email",root).forEach(function(el){el.addEventListener("keydown",function(e){if(e.key==="Enter")$("[data-"+p+"send]",root).click();});});
 }
 function readContact(p){
-  return {first:$("#"+p+"First").value.trim(),last:$("#"+p+"Last").value.trim(),cc:$("#"+p+"Cc").value,phone:$("#"+p+"Phone").value.replace(/\D/g,""),email:$("#"+p+"Email").value.trim(),consent:$("#"+p+"Consent").checked};
+return {first:$("#"+p+"First").value.trim(),last:$("#"+p+"Last").value.trim(),cc:$("#"+p+"Cc").value,phone:$("#"+p+"Phone").value.replace(/\D/g,""),zip:$("#"+p+"Zip").value.replace(/\D/g,"").slice(0,5),email:$("#"+p+"Email").value.trim(),consent:$("#"+p+"Consent").checked};
 }
 function contactError(p,root,msg,field){
-  var e=$("#"+p+"Err");if(e)e.textContent=msg;
-  $$(".inp",root).forEach(function(i){i.removeAttribute("aria-invalid");});
-  if(field){var f=$("#"+p+field);if(f){f.setAttribute("aria-invalid","true");f.focus();}}
-  var b=$("[data-"+p+"send]",root);if(b){b.disabled=false;b.textContent="Continue";}
+var e=$("#"+p+"Err");if(e)e.textContent=msg;
+$$(".inp",root).forEach(function(i){i.removeAttribute("aria-invalid");});
+if(field){var f=$("#"+p+field);if(f){f.setAttribute("aria-invalid","true");f.focus();}}
+var b=$("[data-"+p+"send]",root);if(b){b.disabled=false;b.textContent="Continue";}
 }
 function trySubmit(p,root,btn,source){
-  var c=readContact(p);state.contact=c;
-  var err=checkContact(c);if(err)return contactError(p,root,err[0],err[1]);
-  btn.disabled=true;btn.textContent="Saving…";
-  saveContact(c,source);
+var c=readContact(p);state.contact=c;
+var err=checkContact(c);if(err)return contactError(p,root,err[0],err[1]);
+btn.disabled=true;btn.textContent="Saving…";
+saveContact(c,source);
 }
 
 /* =====================================================================
-   PAGE FORM
-   ===================================================================== */
+PAGE FORM
+===================================================================== */
 var Form=(function(){
-  var card=$("#qcard");
-  function head(){
-    return '<div class="q-head"><span class="q-step">Step '+(state.step+1)+' of '+FLOW.length+'</span>'+
-      '<button type="button" class="q-back'+(state.step>0?' on':'')+'" data-back>Back</button></div>'+
-      '<div class="bar"><i style="width:'+pct()+'%"></i></div>';
-  }
-  function foot(){return '<div class="q-foot">Rather talk now? <a href="tel:+1'+CONFIG.phone+'">'+fmtPhone(CONFIG.phone)+'</a></div>';}
-  function choice(s){
-    var two=s.options.length>=6?' two':'', cur=state.answers[s.id], note="";
-    if(s.id==="best"){
-      if(state.answers.zip&&!inArea(state.answers.zip))note='<p class="note">That ZIP may be outside our usual area. We\'ll let you know if we can get out there.</p>';
-      else if(state.answers.ownership==="renter")note='<p class="note">Since you rent, some work needs the owner\'s OK. We\'ll sort that out on the call.</p>';
-    }
-    return note+'<div class="opts'+two+'" role="group" aria-label="'+esc(s.title)+'">'+s.options.map(function(o){
-      return '<button type="button" class="opt" data-ans="'+s.id+':'+o[0]+'" aria-pressed="'+(cur===o[0])+'">'+esc(o[1])+'</button>';}).join("")+'</div>';
-  }
-  function zip(){
-    return '<div class="field"><label for="fZip">ZIP code</label><input class="inp" id="fZip" inputmode="numeric" autocomplete="postal-code" maxlength="5" value="'+esc(state.answers.zip||"")+'" placeholder="e.g. 91405"></div>'+
-      '<div class="err" id="fZErr"></div><button type="button" class="btn btn-teal btn-block" data-zip>Continue</button>';
-  }
-  function done(){
-    var c=state.contact;
-    return '<div class="done"><div class="bar"><i style="width:100%"></i></div><h2 class="disp">Thanks, '+esc(c.first)+'. We have your request.</h2>'+
-      '<p>Our office will call you at <strong>'+esc(prettyPhone(c.cc,c.phone))+'</strong> to go over the details and set up a time with a technician. We return calls '+esc(CONFIG.hoursShort)+'.</p>'+
-      '<ul class="sum"><li><span>Service</span><span>'+esc(state.labels.service)+'</span></li><li><span>Timing</span><span>'+esc(state.labels.timing)+'</span></li><li><span>Property</span><span>'+esc(state.labels.property)+'</span></li><li><span>ZIP</span><span>'+esc(state.labels.zip)+'</span></li><li><span>Best time</span><span>'+esc(state.labels.best)+'</span></li></ul>'+
-      (state.answers.timing==="today"?'<p class="note">Since this is urgent, calling us is the fastest way to get on today\'s schedule.</p>':'')+
-      '<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call '+fmtPhone(CONFIG.phone)+'</a></div>';
-  }
-  function render(anim){
-    if(state.done){card.innerHTML=done();return;}
-    var s=FLOW[state.step];
-    var body=s.type==="zip"?zip():s.type==="contact"?contactPanel("f"):choice(s);
-    card.innerHTML=head()+'<div class="'+(anim?'q-anim':'')+'"><h2 class="q-title disp">'+esc(s.title)+'</h2>'+(s.help?'<p class="q-help">'+esc(s.help)+'</p>':'<div style="height:12px"></div>')+body+'</div>'+foot();
-    var z=$("#fZip");
-    if(z){z.addEventListener("input",function(){z.value=z.value.replace(/\D/g,"").slice(0,5);});z.addEventListener("keydown",function(e){if(e.key==="Enter")$("[data-zip]",card).click();});}
-    wireContact("f",card);
-  }
-  card.addEventListener("click",function(e){
-    var t=e.target.closest("button");if(!t)return;
-    if(t.hasAttribute("data-back"))return goBack();
-    var a=t.getAttribute("data-ans");if(a){var p=a.split(":");return answer(p[0],p[1],"page");}
-    if(t.hasAttribute("data-zip")){var v=$("#fZip").value.trim();if(!/^\d{5}$/.test(v)){$("#fZErr").textContent="Enter a 5-digit ZIP code.";$("#fZip").focus();return;}return answer("zip",v,"page");}
-    if(t.hasAttribute("data-fsend"))trySubmit("f",card,t,"page");
-  });
-  return {render:render,showError:function(m){if($("#fErr"))contactError("f",card,m);}};
+var card=$("#qcard");
+function head(){
+return '<div class="q-head"><span class="q-step">Step '+stepNo()+' of '+stepTotal()+'</span>'+
+'<button type="button" class="q-back'+(state.history.length?' on':'')+'" data-back>Back</button></div>'+
+'<div class="bar"><i style="width:'+pct()+'%"></i></div>';
+}
+function foot(){return '<div class="q-foot">Rather talk now? <a href="tel:+1'+CONFIG.phone+'">'+fmtPhone(CONFIG.phone)+'</a></div>';}
+function choice(s){
+var two=s.options.length>=6?' two':'', cur=state.answers[s.id], note="";
+if(s.id==="hometype"&&state.answers.zip&&!inArea(state.answers.zip))note='<p class="note">That ZIP may be outside our usual area. We\'ll let you know if we can get out there.</p>';
+return note+'<div class="opts'+two+'" role="group" aria-label="'+esc(s.title)+'">'+s.options.map(function(o){
+return '<button type="button" class="opt" data-ans="'+s.id+':'+o[0]+'" aria-pressed="'+(cur===o[0])+'">'+esc(o[1])+'</button>';}).join("")+'</div>';
+}
+function doneQualified(){
+var c=state.contact;
+return '<div class="done"><div class="bar"><i style="width:100%"></i></div><h2 class="disp">Thank you! We received your information.</h2>'+
+'<p>A Stay Cool specialist will call you soon at <strong>'+esc(prettyPhone(c.cc,c.phone))+'</strong> to review your options and see if your home may qualify. We return calls '+esc(CONFIG.hoursShort)+'.</p>'+
+'<ul class="sum"><li><span>Service</span><span>'+esc(state.labels.service||"")+'</span></li><li><span>Timing</span><span>'+esc(state.labels.timing||"")+'</span></li><li><span>Home</span><span>'+esc(state.labels.hometype||"")+'</span></li><li><span>Heated by</span><span>'+esc(state.labels.heating||"")+'</span></li><li><span>Upgrades</span><span>'+esc(state.labels.upgrades||"")+'</span></li><li><span>ZIP</span><span>'+esc(state.labels.zip||"")+'</span></li></ul>'+
+(state.answers.timing==="today"?'<p class="note">Since this is urgent, calling us is the fastest way to get on today\'s schedule.</p>':'')+
+'<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call Stay Cool!</a></div>';
+}
+function doneReferral(){
+return '<div class="done"><div class="bar"><i style="width:100%"></i></div><h2 class="disp">Thanks! You\'re on the list.</h2>'+
+'<p>The no cost upgrades program is for single-family homes, so an apartment or condo doesn\'t qualify right now. We\'ll let you know if that changes.</p>'+
+'<p>Know a neighbor who could use no cost home upgrades? Refer them to Stay Cool and win BIG CASH PRIZES!</p>'+
+'<p class="note">Questions? Call or text '+fmtPhone(CONFIG.phone)+'.</p>'+
+'<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call Stay Cool!</a></div>';
+}
+function render(anim){
+if(state.done){card.innerHTML=state.outcome==="referral"?doneReferral():doneQualified();return;}
+var s=FLOW[state.step];
+var body=s.type==="contact"?contactPanel("f"):choice(s);
+card.innerHTML=head()+'<div class="'+(anim?'q-anim':'')+'"><h2 class="q-title disp">'+esc(s.title)+'</h2>'+(s.help?'<p class="q-help">'+esc(s.help)+'</p>':'<div style="height:12px"></div>')+body+'</div>'+foot();
+wireContact("f",card);
+}
+card.addEventListener("click",function(e){
+var t=e.target.closest("button");if(!t)return;
+if(t.hasAttribute("data-back"))return goBack();
+var a=t.getAttribute("data-ans");if(a){var p=a.split(":");return answer(p[0],p[1],"page");}
+if(t.hasAttribute("data-fsend"))trySubmit("f",card,t,"page");
+});
+return {render:render,showError:function(m){if($("#fErr"))contactError("f",card,m);}};
 })();
 
 /* =====================================================================
-   CHAT ASSISTANT (same steps, same state)
-   ===================================================================== */
+CHAT ASSISTANT (same steps, same state)
+===================================================================== */
 var Chat=(function(){
-  var box=$("#cb"),msgs=$("#cbMsgs"),inp=$("#cbIn"),bar=$("#cbBar"),launch=$("#cbLaunch"),tip=$("#cbTip");
-  var AV=$("#cbLaunch img").src, opened=false, asked=-1, busy=Promise.resolve();
-  function scroll(){msgs.scrollTop=msgs.scrollHeight;}
-  function add(html,me){var d=document.createElement("div");d.className="m"+(me?" me":"");d.innerHTML=(me?"":'<img src="'+AV+'" alt="">')+'<div class="b">'+html+'</div>';msgs.appendChild(d);scroll();}
-  function say(html,ms){busy=busy.then(function(){return new Promise(function(r){var t=document.createElement("div");t.className="m typing";t.innerHTML='<img src="'+AV+'" alt=""><div class="b"><i></i><i></i><i></i></div>';msgs.appendChild(t);scroll();setTimeout(function(){t.remove();add(html);r();},window.matchMedia("(prefers-reduced-motion: reduce)").matches?0:(ms||550));});});return busy;}
-  function setBar(){bar.style.width=pct()+"%";}
-  function tools(){return '<div class="cb-tools">'+(state.step>0?'<button type="button" data-cback>Go back a step</button>':'<span></span>')+'<a href="tel:+1'+CONFIG.phone+'">Call '+fmtPhone(CONFIG.phone)+' instead</a></div>';}
-  function ask(){
-    if(state.done)return;
-    var s=FLOW[state.step];asked=state.step;inp.innerHTML="";setBar();
-    var p=say(esc(s.chat));
-    if(s.type==="contact")p=say("Please fill in your <strong>name</strong>, <strong>phone number</strong> and <strong>email</strong> below.",450);
-    else if(s.help)p=say('<span style="color:var(--muted);font-size:13.5px">'+esc(s.help)+'</span>',300);
-    p.then(function(){
-      if(asked!==state.step||state.done)return;
-      if(s.type==="zip"){
-        inp.innerHTML='<div class="cb-row"><input class="inp" id="cZip" inputmode="numeric" maxlength="5" placeholder="ZIP code" aria-label="ZIP code"><button class="send" type="button" data-czip aria-label="Send"><svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button></div><div class="err" id="cZErr"></div>'+tools();
-        var z=$("#cZip");z.addEventListener("input",function(){z.value=z.value.replace(/\D/g,"").slice(0,5);});z.addEventListener("keydown",function(e){if(e.key==="Enter")$("[data-czip]").click();});setTimeout(function(){z.focus();},60);
-      }else if(s.type==="contact"){
-        inp.innerHTML=contactPanel("c")+tools();wireContact("c",inp);setTimeout(function(){var f=$("#cFirst");if(f)f.focus();},60);
-      }else{
-        inp.innerHTML='<div class="qr">'+s.options.map(function(o){return '<button type="button" data-cans="'+s.id+':'+o[0]+'">'+esc(o[1])+'</button>';}).join("")+'</div>'+tools();
-      }
-    });
-  }
-  inp.addEventListener("click",function(e){
-    var t=e.target.closest("button");if(!t)return;
-    var a=t.getAttribute("data-cans");if(a){var p=a.split(":");return answer(p[0],p[1],"chat");}
-    if(t.hasAttribute("data-cback"))return goBack();
-    if(t.hasAttribute("data-czip")){var v=$("#cZip").value.trim();if(!/^\d{5}$/.test(v)){$("#cZErr").textContent="Enter a 5-digit ZIP code.";return;}return answer("zip",v,"chat");}
-    if(t.hasAttribute("data-csend"))trySubmit("c",inp,t,"chat");
-  });
-  function open(){
-    box.classList.add("open");launch.setAttribute("aria-expanded","true");tip.classList.remove("on");
-    if(!opened){opened=true;
-      if(state.done){say("You're all set. Our office will call you soon. Anything else, call "+fmtPhone(CONFIG.phone)+".");}
-      else if(state.step===0){say("Hi! I'm with Stay Cool SoCal. I'll ask a few quick questions so our office can call you and set up a visit.",500);ask();}
-      else{say("Hi! I see you've already started. I'll pick up right where you left off.",500);ask();}
-    }else if(!state.done&&asked!==state.step)ask();
-    setBar();
-  }
-  function close(){box.classList.remove("open");launch.setAttribute("aria-expanded","false");launch.focus();}
-  launch.addEventListener("click",function(){box.classList.contains("open")?close():open();});
-  $("#cbX").addEventListener("click",close);
-  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&box.classList.contains("open"))close();});
-  setTimeout(function(){if(!opened&&!state.done)tip.classList.add("on");},9000);
-  setTimeout(function(){tip.classList.remove("on");},20000);
-  return{
-    showError:function(m){if($("#cErr"))contactError("c",inp,m);},
-    onAnswer:function(stepId,source){
-      if(!opened)return;
-      add(esc(state.labels[stepId]),true);
-      if(source==="page")inp.innerHTML="";
-      if(stepId==="zip"&&!inArea(state.answers.zip))say("That ZIP may be outside our usual area, but we'll let you know if we can get out there.");
-      if(stepId==="ownership"&&state.answers.ownership==="renter")say("No problem. Some work needs the owner's OK, and we'll sort that out on the call.");
-      ask();
-    },
-    onContact:function(){
-      if(!opened)return;
-      var c=state.contact;inp.innerHTML="";
-      add(esc(c.first+" "+c.last)+" · "+esc(prettyPhone(c.cc,c.phone))+" · "+esc(c.email),true);
-      ask();
-    },
-    onStepChange:function(){if(opened&&box.classList.contains("open")){add("Let's go back one.",false);ask();}else asked=-1;},
-    onDone:function(source){setBar();inp.innerHTML="";if(!opened)return;
-      if(source==="chat"||source==="page")add(esc(state.labels.best),true);
-      say("Thanks, "+esc(state.contact.first)+"! We have your request. Our office will call you at <strong>"+esc(prettyPhone(state.contact.cc,state.contact.phone))+"</strong> to confirm the details and a time with the technician ("+esc(CONFIG.hoursShort)+").").then(function(){
-        inp.innerHTML='<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call '+fmtPhone(CONFIG.phone)+'</a>';});
-    }
-  };
+var box=$("#cb"),msgs=$("#cbMsgs"),inp=$("#cbIn"),bar=$("#cbBar"),launch=$("#cbLaunch"),tip=$("#cbTip");
+var AV=$("#cbLaunch img").src, opened=false, asked=-1, busy=Promise.resolve();
+function scroll(){msgs.scrollTop=msgs.scrollHeight;}
+function add(html,me){var d=document.createElement("div");d.className="m"+(me?" me":"");d.innerHTML=(me?"":'<img src="'+AV+'" alt="">')+'<div class="b">'+html+'</div>';msgs.appendChild(d);scroll();}
+function say(html,ms){busy=busy.then(function(){return new Promise(function(r){var t=document.createElement("div");t.className="m typing";t.innerHTML='<img src="'+AV+'" alt=""><div class="b"><i></i><i></i><i></i></div>';msgs.appendChild(t);scroll();setTimeout(function(){t.remove();add(html);r();},window.matchMedia("(prefers-reduced-motion: reduce)").matches?0:(ms||550));});});return busy;}
+function setBar(){bar.style.width=pct()+"%";}
+function tools(){return '<div class="cb-tools">'+(state.history.length?'<button type="button" data-cback>Go back a step</button>':'<span></span>')+'<a href="tel:+1'+CONFIG.phone+'">Call '+fmtPhone(CONFIG.phone)+' instead</a></div>';}
+function ask(){
+if(state.done)return;
+var s=FLOW[state.step];asked=state.step;inp.innerHTML="";setBar();
+var p=say(esc(s.chat));
+if(s.type==="contact")p=say("Please fill in your <strong>name</strong>, <strong>phone number</strong>, <strong>ZIP code</strong> and <strong>email</strong> below.",450);
+else if(s.help)p=say('<span style="color:var(--muted);font-size:13.5px">'+esc(s.help)+'</span>',300);
+p.then(function(){
+if(asked!==state.step||state.done)return;
+if(s.type==="contact"){
+inp.innerHTML=contactPanel("c")+tools();wireContact("c",inp);setTimeout(function(){var f=$("#cFirst");if(f)f.focus();},60);
+}else{
+inp.innerHTML='<div class="qr">'+s.options.map(function(o){return '<button type="button" data-cans="'+s.id+':'+o[0]+'">'+esc(o[1])+'</button>';}).join("")+'</div>'+tools();
+}
+});
+}
+inp.addEventListener("click",function(e){
+var t=e.target.closest("button");if(!t)return;
+var a=t.getAttribute("data-cans");if(a){var p=a.split(":");return answer(p[0],p[1],"chat");}
+if(t.hasAttribute("data-cback"))return goBack();
+if(t.hasAttribute("data-csend"))trySubmit("c",inp,t,"chat");
+});
+function open(){
+box.classList.add("open");launch.setAttribute("aria-expanded","true");tip.classList.remove("on");
+if(!opened){opened=true;
+if(state.done){say("You're all set. Our office will call you soon. Anything else, call "+fmtPhone(CONFIG.phone)+".");}
+else if(state.step===0){say("Hi! I'm with Stay Cool SoCal. I'll ask a few quick questions so our office can call you and check if your home qualifies.",500);ask();}
+else{say("Hi! I see you've already started. I'll pick up right where you left off.",500);ask();}
+}else if(!state.done&&asked!==state.step)ask();
+setBar();
+}
+function close(){box.classList.remove("open");launch.setAttribute("aria-expanded","false");launch.focus();}
+launch.addEventListener("click",function(){box.classList.contains("open")?close():open();});
+$("#cbX").addEventListener("click",close);
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&box.classList.contains("open"))close();});
+setTimeout(function(){if(!opened&&!state.done)tip.classList.add("on");},9000);
+setTimeout(function(){tip.classList.remove("on");},20000);
+return{
+showError:function(m){if($("#cErr"))contactError("c",inp,m);},
+onAnswer:function(stepId,source){
+if(!opened)return;
+add(esc(state.labels[stepId]),true);
+if(source==="page")inp.innerHTML="";
+ask();
+},
+onContact:function(){
+if(!opened)return;
+var c=state.contact;inp.innerHTML="";
+add(esc(c.first+" "+c.last)+" · "+esc(prettyPhone(c.cc,c.phone))+" · "+esc(c.zip)+" · "+esc(c.email),true);
+if(c.zip&&!inArea(c.zip))say("That ZIP may be outside our usual area, but we'll let you know if we can get out there.");
+ask();
+},
+onStepChange:function(){if(opened&&box.classList.contains("open")){add("Let's go back one.",false);ask();}else asked=-1;},
+onDone:function(source){setBar();inp.innerHTML="";if(!opened)return;
+var last=state.outcome==="referral"?state.labels.hometype:state.labels.upgrades;
+if(source==="chat"||source==="page")add(esc(last||""),true);
+if(state.outcome==="referral"){
+say("Thanks, "+esc(state.contact.first)+"! You're on the list. The no cost upgrades program is for single-family homes, so an apartment or condo doesn't qualify right now.").then(function(){
+return say("Know a neighbor who could use no cost home upgrades? Refer them to Stay Cool and win <strong>BIG CASH PRIZES</strong>! Questions? Call or text "+fmtPhone(CONFIG.phone)+".");
+}).then(function(){
+inp.innerHTML='<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call Stay Cool!</a>';});
+return;
+}
+say("Thank you, "+esc(state.contact.first)+"! We received your information. A Stay Cool specialist will call you soon at <strong>"+esc(prettyPhone(state.contact.cc,state.contact.phone))+"</strong> to review your options and see if your home may qualify ("+esc(CONFIG.hoursShort)+").").then(function(){
+inp.innerHTML='<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call Stay Cool!</a>';});
+}
+};
 })();
 
 /* ---------- Page shortcuts into the flow ---------- */
 $$("[data-pick]").forEach(function(b){b.addEventListener("click",function(){
-  var p=b.getAttribute("data-pick").split(":");
-  if(!state.done&&state.step===0)answer(p[0],p[1],"page");
-  $("#start").scrollIntoView({behavior:"smooth",block:"center"});
+var p=b.getAttribute("data-pick").split(":");
+if(!state.done&&state.step===0)answer(p[0],p[1],"page");
+$("#start").scrollIntoView({behavior:"smooth",block:"center"});
 });});
 $$("[data-scrollstart]").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();$("#start").scrollIntoView({behavior:"smooth",block:"center"});});});
 

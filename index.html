@@ -717,7 +717,7 @@ return '<div class="done"><div class="bar"><i style="width:100%"></i></div><h2 c
 function doneReferral(){
 return '<div class="done"><div class="bar"><i style="width:100%"></i></div><h2 class="disp">Thanks! You\'re on the list.</h2>'+
 '<p>The no cost upgrades program is for single-family homes, so an apartment or condo doesn\'t qualify right now. We\'ll let you know if that changes.</p>'+
-'<p>Know a neighbor who could use no cost home upgrades? Refer them to Stay Cool and win BIG CASH PRIZES!</p>'+
+'<p>Know a friend or neighbor in a house who could use these upgrades? Feel free to pass along our number!</p>'+
 '<p class="note">Questions? Call or text '+fmtPhone(CONFIG.phone)+'.</p>'+
 '<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call Stay Cool!</a></div>';
 }
@@ -805,7 +805,7 @@ var last=state.outcome==="referral"?state.labels.hometype:state.labels.upgrades;
 if(source==="chat"||source==="page")add(esc(last||""),true);
 if(state.outcome==="referral"){
 say("Thanks, "+esc(state.contact.first)+"! You're on the list. The no cost upgrades program is for single-family homes, so an apartment or condo doesn't qualify right now.").then(function(){
-return say("Know a neighbor who could use no cost home upgrades? Refer them to Stay Cool and win <strong>BIG CASH PRIZES</strong>! Questions? Call or text "+fmtPhone(CONFIG.phone)+".");
+return say("Know a friend or neighbor in a house who could use these upgrades? Feel free to pass along our number! Questions? Call or text "+fmtPhone(CONFIG.phone)+".");
 }).then(function(){
 inp.innerHTML='<a class="btn btn-teal btn-block" href="tel:+1'+CONFIG.phone+'">Call Stay Cool!</a>';});
 return;
